@@ -97,6 +97,24 @@ function Disable-AVProcess {
     return $false
 }
 
+function Show-Compass {
+    param($Remaining)
+    
+    $frames = @(
+        "  ↑  ",
+        "  ↗  ",
+        "  →  ",
+        "  ↘  ",
+        "  ↓  ",
+        "  ↙  ",
+        "  ←  ",
+        "  ↖  "
+    )
+    
+    $idx = [math]::Floor((Get-Date).Millisecond / 125) % 8
+    return $frames[$idx]
+}
+
 Write-Host ""
 Write-Host "Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
 $confirm = Read-Host
@@ -257,7 +275,8 @@ while ($remainingSeconds -gt 0) {
         $timeStr = "$seconds s"
     }
     
-    Write-Host "`r[*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
+    $compass = Show-Compass -Remaining $remainingSeconds
+    Write-Host "`r$compass  [*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remainingSeconds--
 }
@@ -295,27 +314,16 @@ foreach ($av in $avServices) {
 }
 
 Write-Host ""
-Write-Host "[OK] All antivirus have been re-enabled!" -ForegroundColor Green
-Write-Host "[*] It is recommended to restart the system to ensure" -ForegroundColor White
-Write-Host "[*] all services are fully functional." -ForegroundColor White
+Write-Host "✨ Antivirus Disabler Complete! ✨" -ForegroundColor White
 Write-Host ""
-Write-Host "  ✨ Antivirus Disabler complete!" -ForegroundColor White
+Write-Host "👤 Created by: 🌟 Tonynoh" -ForegroundColor White
 Write-Host ""
-Write-Host "  👤 Created by: " -NoNewline
-Write-Host "🌟 " -ForegroundColor Cyan -NoNewline
-Write-Host "Tonynoh" -ForegroundColor White
-Write-Host "  📱 My Socials: " -NoNewline
-Write-Host "💬 " -ForegroundColor Blue -NoNewline
-Write-Host "Discord  : " -ForegroundColor Blue -NoNewline
-Write-Host "tonyboy90_" -ForegroundColor Blue
-Write-Host "                 " -NoNewline
-Write-Host "🔗 " -ForegroundColor DarkGray -NoNewline
-Write-Host "GitHub   : " -ForegroundColor DarkGray -NoNewline
-Write-Host "https://github.com/MeowTonynoh" -ForegroundColor DarkGray
-Write-Host "                 " -NoNewline
-Write-Host "🎥 " -ForegroundColor Red -NoNewline
-Write-Host "YouTube  : " -ForegroundColor Red -NoNewline
-Write-Host "tonynoh-07" -ForegroundColor Red
+Write-Host "📱 My Socials:" -ForegroundColor White
+Write-Host "  💬 Discord   : tonyboy90_" -ForegroundColor White
+Write-Host "  🔗 GitHub    : MeowTonynoh" -ForegroundColor White
+Write-Host "  🎥 YouTube   : tonynoh-07" -ForegroundColor White
+Write-Host ""
+Write-Host "🌟 Thanks for using Antivirus Disabler!" -ForegroundColor White
 Write-Host ""
 
 Read-Host "Press Enter to exit"
