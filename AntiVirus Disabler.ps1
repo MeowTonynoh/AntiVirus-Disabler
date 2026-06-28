@@ -242,13 +242,23 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-$remainingSeconds = $totalSeconds
-$compassFrames = @("↑", "↗", "→", "↘", "↓", "↙", "←", "↖")
-$frameIndex = 0
+# === TIMER CON SPINNER E BARRA DI AVANZAMENTO ===
+$remaining = $totalSeconds
+$spinner = @("/", "-", "\", "|")
+$spinnerIdx = 0
+$barLength = 30
 
-while ($remainingSeconds -gt 0) {
-    $minutes = [math]::Floor($remainingSeconds / 60)
-    $seconds = $remainingSeconds % 60
+while ($remaining -gt 0) {
+    # Calcola percentuale completata
+    $elapsed = $totalSeconds - $remaining
+    $percent = ($elapsed / $totalSeconds) * 100
+    $filled = [math]::Floor(($elapsed / $totalSeconds) * $barLength)
+    $empty = $barLength - $filled
+    $bar = "[" + ("#" * $filled) + (" " * $empty) + "]"
+    
+    # Formatta il tempo
+    $minutes = [math]::Floor($remaining / 60)
+    $seconds = $remaining % 60
     $hours = [math]::Floor($minutes / 60)
     $minutes = $minutes % 60
     
@@ -260,17 +270,19 @@ while ($remainingSeconds -gt 0) {
         $timeStr = "$seconds s"
     }
     
-    # Ruota la bussola ogni 200ms per farla animare
-    $frameIndex = ($frameIndex + 1) % 8
-    $compass = $compassFrames[$frameIndex]
+    # Spinner
+    $spinChar = $spinner[$spinnerIdx]
+    $spinnerIdx = ($spinnerIdx + 1) % 4
     
-    Write-Host "`r$compass  [*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
-    Start-Sleep -Milliseconds 200
-    $remainingSeconds -= 0.2
+    # Scrive la riga
+    Write-Host "`r$spinChar  $bar  $timeStr    " -ForegroundColor White -NoNewline
+    
+    Start-Sleep -Seconds 1
+    $remaining--
 }
 
-# Quando il timer finisce, mostra Completed!
-Write-Host "`r✓  [*] Time remaining: Completed!     " -ForegroundColor Green
+# Timer scaduto
+Write-Host "`r✓  [##############################]  Completed!    " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
