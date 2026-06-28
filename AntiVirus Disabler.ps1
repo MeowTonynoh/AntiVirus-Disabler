@@ -97,30 +97,22 @@ function Disable-AVProcess {
     return $false
 }
 
-function Write-Centered {
-    param([string]$Message, [ConsoleColor]$Color = "White")
-    $width = 80
-    $padding = [math]::Max(0, [math]::Floor(($width - $Message.Length) / 2))
-    Write-Host (" " * $padding) -NoNewline
-    Write-Host $Message -ForegroundColor $Color
-}
-
 Write-Host ""
-Write-Centered -Message "Do you want to disable antivirus? (Y/N): " -Color White
+Write-Host "Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
 $confirm = Read-Host
 $confirm = $confirm.ToUpper()
 
 if ($confirm -eq "N") {
     Write-Host ""
-    Write-Centered -Message "Operation cancelled." -Color Yellow
-    Write-Centered -Message "Press Enter to exit..." -Color Gray
+    Write-Host "Operation cancelled." -ForegroundColor Yellow
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
     Read-Host
     exit
 }
 
 do {
     Write-Host ""
-    Write-Centered -Message "For how long? (e.g., 30s, 1m, 1h, 2h30m): " -Color White
+    Write-Host "For how long? (e.g., 30s, 1m, 1h, 2h30m): " -NoNewline -ForegroundColor White
     $timeInput = Read-Host
     
     $totalSeconds = 0
@@ -158,8 +150,7 @@ do {
     }
     
     if (-not $timeValid -or $totalSeconds -le 0) {
-        Write-Host ""
-        Write-Centered -Message "Invalid format. Use: 30s, 1m, 1h, 2h30m, 1.5h" -Color Red
+        Write-Host "Invalid format. Use: 30s, 1m, 1h, 2h30m, 1.5h" -ForegroundColor Red
         $timeValid = $false
     }
 } while (-not $timeValid)
@@ -179,9 +170,9 @@ if ($totalSeconds -ge 3600) {
 }
 
 Write-Host ""
-Write-Centered -Message "[*] Starting antivirus disable..." -Color White
-Write-Centered -Message "[*] Time selected: $timeDisplay" -Color White
-Write-Centered -Message "[*] Expires at: $($endTime.ToString('HH:mm:ss'))" -Color White
+Write-Host "[*] Starting antivirus disable..." -ForegroundColor White
+Write-Host "[*] Time selected: $timeDisplay" -ForegroundColor White
+Write-Host "[*] Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor White
 Write-Host ""
 
 $disabledCount = 0
@@ -265,26 +256,26 @@ foreach ($proc in $processList) {
 }
 
 Write-Host ""
-Write-Centered -Message "[OK] Disable completed!" -Color Green
+Write-Host "[OK] Disable completed!" -ForegroundColor Green
 if ($disabledCount -gt 0) {
-    Write-Centered -Message "[*] Disabled $disabledCount antivirus components:" -Color White
+    Write-Host "[*] Disabled $disabledCount antivirus components:" -ForegroundColor White
     foreach ($item in $disabledList | Select-Object -Unique) {
-        Write-Centered -Message "    - $item" -Color Gray
+        Write-Host "    - $item" -ForegroundColor Gray
     }
 } else {
-    Write-Centered -Message "[*] No antivirus components were found to disable." -Color Yellow
+    Write-Host "[*] No antivirus components were found to disable." -ForegroundColor Yellow
 }
 Write-Host ""
 
 if ($disabledCount -eq 0) {
-    Write-Centered -Message "Operation failed." -Color Red
-    Write-Centered -Message "Press Enter to exit..." -Color Gray
+    Write-Host "Operation failed." -ForegroundColor Red
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
     Read-Host
     exit
 }
 
-Write-Centered -Message "[*] Re-enable timer started..." -Color White
-Write-Centered -Message "[*] Antivirus will be re-enabled in $timeDisplay" -Color White
+Write-Host "[*] Re-enable timer started..." -ForegroundColor White
+Write-Host "[*] Antivirus will be re-enabled in $timeDisplay" -ForegroundColor White
 Write-Host ""
 
 $compassFrames = @("N", "NE", "E", "SE", "S", "SW", "W", "NW")
@@ -308,19 +299,14 @@ while ($remainingSeconds -gt 0) {
     $compass = $compassFrames[$frameIndex % $compassFrames.Length]
     $frameIndex++
     
-    $fullMsg = "$compass  [*] Time remaining: $timeStr"
-    Write-Centered -Message $fullMsg -Color White
+    Write-Host "`r  $compass  [*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remainingSeconds--
-    if ($remainingSeconds -gt 0) {
-        $cursor = [System.Console]::GetCursorPosition()
-        [System.Console]::SetCursorPosition(0, $cursor.Y - 1)
-    }
 }
 Write-Host ""
 
 Write-Host ""
-Write-Centered -Message "[!] TIME EXPIRED! Re-enabling antivirus..." -Color Red
+Write-Host "[!] TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
 
 try {
     Set-MpPreference -DisableRealtimeMonitoring $false
@@ -333,9 +319,9 @@ try {
     Set-MpPreference -DisableIntrusionPreventionSystem $false
     Set-MpPreference -DisableScriptScanning $false
     Set-MpPreference -SubmitSamplesConsent 1
-    Write-Centered -Message "[OK] Windows Defender re-enabled" -Color Green
+    Write-Host "[OK] Windows Defender re-enabled" -ForegroundColor Green
 } catch {
-    Write-Centered -Message "[FAIL] Error re-enabling Windows Defender" -Color Red
+    Write-Host "[FAIL] Error re-enabling Windows Defender" -ForegroundColor Red
 }
 
 foreach ($av in $avServices) {
@@ -344,25 +330,24 @@ foreach ($av in $avServices) {
         if ($service) {
             Set-Service -Name $av.Service -StartupType Automatic -ErrorAction SilentlyContinue
             Start-Service -Name $av.Service -ErrorAction SilentlyContinue
-            Write-Centered -Message "[OK] $($av.Display) re-enabled" -Color Green
+            Write-Host "[OK] $($av.Display) re-enabled" -ForegroundColor Green
         }
     } catch {
     }
 }
 
 Write-Host ""
-Write-Centered -Message "[OK] All antivirus have been re-enabled!" -Color Green
-Write-Centered -Message "[*] It is recommended to restart the system to ensure" -Color White
-Write-Centered -Message "[*] all services are fully functional." -Color White
+Write-Host "[OK] All antivirus have been re-enabled!" -ForegroundColor Green
+Write-Host "[*] It is recommended to restart the system to ensure" -ForegroundColor White
+Write-Host "[*] all services are fully functional." -ForegroundColor White
 Write-Host ""
-Write-Centered -Message "  ✨ Antivirus Disabler complete!" -Color White
+Write-Host "  ✨ Antivirus Disabler complete!" -ForegroundColor White
 Write-Host ""
-Write-Centered -Message "  👤 Created by: 🌟 Tonynoh" -Color White
-Write-Host ""
-Write-Centered -Message "  📱 My Socials:" -Color White
-Write-Centered -Message "  💬 Discord  : tonyboy90_" -Color White
-Write-Centered -Message "  🔗 GitHub   : https://github.com/MeowTonynoh" -Color White
-Write-Centered -Message "  🎥 YouTube  : tonynoh-07" -Color White
+Write-Host "  👤 Created by: 🌟 Tonynoh" -ForegroundColor White
+Write-Host "  📱 My Socials:" -ForegroundColor White
+Write-Host "  💬 Discord  : tonyboy90_" -ForegroundColor White
+Write-Host "  🔗 GitHub   : https://github.com/MeowTonynoh" -ForegroundColor White
+Write-Host "  🎥 YouTube  : tonynoh-07" -ForegroundColor White
 Write-Host ""
 
 Read-Host "Press Enter to exit"
