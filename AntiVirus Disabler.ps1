@@ -141,15 +141,16 @@ Write-Host ""
 
 $disabledCount = 0
 $disabledList = @()
-$disabledServices = @()  # Nomi dei servizi disabilitati (per riattivarli)
+$disabledServices = @()
 
+# Disabilita Windows Defender
 if (Disable-WindowsDefender) {
     $disabledCount++
     $disabledList += "Windows Defender"
-    # Windows Defender non ha un servizio specifico, lo riattiviamo con i comandi appositi
-    $disabledServices += "WindowsDefender"  # marcatore speciale
+    $disabledServices += "WindowsDefender"
 }
 
+# Lista completa servizi antivirus
 $avServices = @(
     @{Service="avast"; Display="Avast"},
     @{Service="avastAntivirus"; Display="Avast Antivirus"},
@@ -190,7 +191,7 @@ foreach ($av in $avServices) {
     if (Disable-ThirdPartyAV -ServiceName $av.Service -DisplayName $av.Display) {
         $disabledCount++
         $disabledList += $av.Display
-        $disabledServices += $av.Service  # Salva il nome del servizio per riattivarlo
+        $disabledServices += $av.Service
     }
 }
 
@@ -220,7 +221,6 @@ foreach ($proc in $processList) {
     if (Disable-AVProcess -ProcessName $proc.Process -DisplayName $proc.Display) {
         $disabledCount++
         $disabledList += $proc.Display
-        # I processi non hanno un servizio da riavviare, quindi non li aggiungiamo
     }
 }
 
@@ -247,7 +247,7 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-# === TIMER CON BARRA DI AVANZAMENTO ROBUSTA ===
+# === TIMER CON BARRA DI AVANZAMENTO ESTETICA (fissa) ===
 $remaining = $totalSeconds
 $barLength = 30
 
@@ -255,8 +255,7 @@ while ($remaining -gt 0) {
     $progress = ($totalSeconds - $remaining) / $totalSeconds
     $filled = [math]::Floor($progress * $barLength)
     $empty = $barLength - $filled
-    # Usa caratteri semplici per massima compatibilità
-    $bar = ("=" * $filled) + ("-" * $empty)
+    $bar = ("█" * $filled) + ("░" * $empty)
     $percent = [math]::Round($progress * 100, 1)
     
     $minutes = [math]::Floor($remaining / 60)
@@ -272,20 +271,22 @@ while ($remaining -gt 0) {
         $timeStr = "$seconds`s"
     }
     
-    # Sovrascrivi la riga (funziona con \r)
-    Write-Host "`r  [$bar]  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
+    # Pulisce la riga prima di scrivere per evitare bug
+    Write-Host "`r                                                                                " -NoNewline
+    Write-Host "`r  $bar  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remaining--
 }
 
-# Timer scaduto
-Write-Host "`r  [$bar]  Completed!  (100%)  " -ForegroundColor Green
+# Timer scaduto - mostra completato
+Write-Host "`r                                                                                " -NoNewline
+Write-Host "`r  $bar  Completed!  (100%)  " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
 Write-Host "[!] TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
 
-# Riattiva solo i servizi che sono stati effettivamente disabilitati
+# Riattiva solo i servizi che sono stati disabilitati
 if ($disabledServices -contains "WindowsDefender") {
     try {
         Set-MpPreference -DisableRealtimeMonitoring $false
@@ -304,15 +305,13 @@ if ($disabledServices -contains "WindowsDefender") {
     }
 }
 
-# Riattiva i servizi di terze parti disabilitati
 foreach ($svcName in $disabledServices) {
-    if ($svcName -eq "WindowsDefender") { continue }  # già gestito sopra
+    if ($svcName -eq "WindowsDefender") { continue }
     try {
         $service = Get-Service -Name $svcName -ErrorAction SilentlyContinue
         if ($service) {
             Set-Service -Name $svcName -StartupType Automatic -ErrorAction SilentlyContinue
             Start-Service -Name $svcName -ErrorAction SilentlyContinue
-            # Recupera il nome visualizzato dalla lista (opzionale)
             $display = ($avServices | Where-Object { $_.Service -eq $svcName }).Display
             if (-not $display) { $display = $svcName }
             Write-Host "[OK] $display re-enabled" -ForegroundColor Green
