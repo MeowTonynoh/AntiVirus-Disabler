@@ -242,47 +242,37 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-# === TIMER CON SPINNER E BARRA DI AVANZAMENTO ===
+# === TIMER CON BARRA DI AVANZAMENTO ESTETICA ===
 $remaining = $totalSeconds
-$spinner = @("/", "-", "\", "|")
-$spinnerIdx = 0
 $barLength = 30
 
 while ($remaining -gt 0) {
-    # Calcola percentuale completata
-    $elapsed = $totalSeconds - $remaining
-    $percent = ($elapsed / $totalSeconds) * 100
-    $filled = [math]::Floor(($elapsed / $totalSeconds) * $barLength)
+    $progress = ($totalSeconds - $remaining) / $totalSeconds
+    $filled = [math]::Floor($progress * $barLength)
     $empty = $barLength - $filled
-    $bar = "[" + ("#" * $filled) + (" " * $empty) + "]"
+    $bar = ("█" * $filled) + ("░" * $empty)
+    $percent = [math]::Round($progress * 100, 1)
     
-    # Formatta il tempo
     $minutes = [math]::Floor($remaining / 60)
     $seconds = $remaining % 60
     $hours = [math]::Floor($minutes / 60)
     $minutes = $minutes % 60
     
     if ($hours -gt 0) {
-        $timeStr = "$hours h $minutes m $seconds s"
+        $timeStr = "$hours`h $minutes`m $seconds`s"
     } elseif ($minutes -gt 0) {
-        $timeStr = "$minutes m $seconds s"
+        $timeStr = "$minutes`m $seconds`s"
     } else {
-        $timeStr = "$seconds s"
+        $timeStr = "$seconds`s"
     }
     
-    # Spinner
-    $spinChar = $spinner[$spinnerIdx]
-    $spinnerIdx = ($spinnerIdx + 1) % 4
-    
-    # Scrive la riga
-    Write-Host "`r$spinChar  $bar  $timeStr    " -ForegroundColor White -NoNewline
-    
+    Write-Host "`r  $bar  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remaining--
 }
 
 # Timer scaduto
-Write-Host "`r✓  [##############################]  Completed!    " -ForegroundColor Green
+Write-Host "`r  $bar  Completed!  (100%)  " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
