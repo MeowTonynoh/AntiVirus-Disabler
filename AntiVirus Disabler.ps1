@@ -5,8 +5,48 @@ if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     exit
 }
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+$OutputEncoding           = [System.Text.Encoding]::UTF8
+chcp 65001 | Out-Null
+Clear-Host
+
+$Banner = @"
+
+ ▄▄▄       ███▄    █ ▄▄▄█████▓ ██▓ ██▒   █▓ ██▓ ██▀███   █    ██   ██████    
+▒████▄     ██ ▀█   █ ▓  ██▒ ▓▒▓██▒▓██░   █▒▓██▒▓██ ▒ ██▒ ██  ▓██▒▒██    ▒    
+▒██  ▀█▄  ▓██  ▀█ ██▒▒ ▓██░ ▒░▒██▒ ▓██  █▒░▒██▒▓██ ░▄█ ▒▓██  ▒██░░ ▓██▄      
+░██▄▄▄▄██ ▓██▒  ▐▌██▒░ ▓██▓ ░ ░██░  ▒██ █░░░██░▒██▀▀█▄  ▓▓█  ░██░  ▒   ██▒   
+ ▓█   ▓██▒▒██░   ▓██░  ▒██▒ ░ ░██░   ▒▀█░  ░██░░██▓ ▒██▒▒▒█████▓ ▒██████▒▒   
+ ▒▒   ▓▒█░░ ▒░   ▒ ▒   ▒ ░░   ░▓     ░ ▐░  ░▓  ░ ▒▓ ░▒▓░░▒▓▒ ▒ ▒ ▒ ▒▓▒ ▒ ░   
+  ▒   ▒▒ ░░ ░░   ░ ▒░    ░     ▒ ░   ░ ░░   ▒ ░  ░▒ ░ ▒░░░▒░ ░ ░ ░ ░▒  ░ ░   
+  ░   ▒      ░   ░ ░   ░       ▒ ░     ░░   ▒ ░  ░░   ░  ░░░ ░ ░ ░  ░  ░     
+      ░  ░         ░           ░        ░   ░     ░        ░           ░     
+                                       ░                                     
+      ▓█████▄  ██▓  ██████  ▄▄▄       ▄▄▄▄    ██▓    ▓█████  ██▀███          
+      ▒██▀ ██▌▓██▒▒██    ▒ ▒████▄    ▓█████▄ ▓██▒    ▓█   ▀ ▓██ ▒ ██▒        
+      ░██   █▌▒██▒░ ▓██▄   ▒██  ▀█▄  ▒██▒ ▄██▒██░    ▒███   ▓██ ░▄█ ▒        
+      ░▓█▄   ▌░██░  ▒   ██▒░██▄▄▄▄██ ▒██░█▀  ▒██░    ▒▓█  ▄ ▒██▀▀█▄          
+      ░▒████▓ ░██░▒██████▒▒ ▓█   ▓██▒░▓█  ▀█▓░██████▒░▒████▒░██▓ ▒██▒        
+       ▒▒▓  ▒ ░▓  ▒ ▒▓▒ ▒ ░ ▒▒   ▓▒█░░▒▓███▀▒░ ▒░▓  ░░░ ▒░ ░░ ▒▓ ░▒▓░        
+       ░ ▒  ▒  ▒ ░░ ░▒  ░ ░  ▒   ▒▒ ░▒░▒   ░ ░ ░ ▒  ░ ░ ░  ░  ░▒ ░ ▒░        
+       ░ ░  ░  ▒ ░░  ░  ░    ░   ▒    ░    ░   ░ ░      ░     ░░   ░         
+         ░     ░        ░        ░  ░ ░          ░  ░   ░  ░   ░             
+       ░                                   ░
+"@
+
+Write-Host $Banner -ForegroundColor White
+Write-Host ""
+Write-Host "                Made with " -NoNewline
+Write-Host "♥ " -ForegroundColor Red -NoNewline
+Write-Host "by " -NoNewline
+Write-Host "MeowTonynoh" -ForegroundColor White
+Write-Host ""
+Write-Host ("━" * 76) -ForegroundColor White
+Write-Host ""
+
 function Disable-WindowsDefender {
-    Write-Host "Disabling Windows Defender..." -ForegroundColor Cyan
+    Write-Host "Disabling Windows Defender..." -ForegroundColor White
     try {
         Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
         Set-MpPreference -DisableBehaviorMonitoring $true -ErrorAction SilentlyContinue
@@ -27,7 +67,7 @@ function Disable-WindowsDefender {
 function Disable-ThirdPartyAV {
     param($ServiceName, $DisplayName)
     
-    Write-Host "Searching $DisplayName..." -ForegroundColor Cyan
+    Write-Host "Searching $DisplayName..." -ForegroundColor White
     try {
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($service) {
@@ -61,10 +101,9 @@ function Disable-AVProcess {
     return $false
 }
 
-Clear-Host
-Write-Host "====================================================" -ForegroundColor Magenta
-Write-Host "    TEMPORARY ANTIVIRUS DISABLER" -ForegroundColor Yellow
-Write-Host "====================================================" -ForegroundColor Magenta
+Write-Host "====================================================" -ForegroundColor White
+Write-Host "    ANTIVIRUS DISABLER" -ForegroundColor White
+Write-Host "====================================================" -ForegroundColor White
 Write-Host ""
 
 do {
@@ -98,9 +137,9 @@ $totalSeconds = $totalMinutes * 60
 $endTime = (Get-Date).AddMinutes($totalMinutes)
 
 Write-Host ""
-Write-Host "Starting antivirus disable..." -ForegroundColor Cyan
-Write-Host "Time selected: $totalMinutes minutes" -ForegroundColor Cyan
-Write-Host "Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor Cyan
+Write-Host "Starting antivirus disable..." -ForegroundColor White
+Write-Host "Time selected: $totalMinutes minutes" -ForegroundColor White
+Write-Host "Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor White
 Write-Host ""
 
 $disabledCount = 0
@@ -177,14 +216,14 @@ foreach ($proc in $processList) {
 }
 
 Write-Host ""
-Write-Host "====================================================" -ForegroundColor Magenta
+Write-Host "====================================================" -ForegroundColor White
 Write-Host "[OK] Disable completed!" -ForegroundColor Green
-Write-Host "Antivirus disabled: $disabledCount" -ForegroundColor Yellow
-Write-Host "====================================================" -ForegroundColor Magenta
+Write-Host "Antivirus disabled: $disabledCount" -ForegroundColor White
+Write-Host "====================================================" -ForegroundColor White
 Write-Host ""
 
-Write-Host "Re-enable timer started..." -ForegroundColor Cyan
-Write-Host "Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor Cyan
+Write-Host "Re-enable timer started..." -ForegroundColor White
+Write-Host "Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor White
 Write-Host ""
 
 $remainingMinutes = $totalMinutes
@@ -196,9 +235,9 @@ while ($remainingMinutes -gt 0) {
 }
 
 Write-Host ""
-Write-Host "====================================================" -ForegroundColor Magenta
+Write-Host "====================================================" -ForegroundColor White
 Write-Host "TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
-Write-Host "====================================================" -ForegroundColor Magenta
+Write-Host "====================================================" -ForegroundColor White
 
 try {
     Set-MpPreference -DisableRealtimeMonitoring $false
@@ -230,8 +269,30 @@ foreach ($av in $avList) {
 
 Write-Host ""
 Write-Host "[OK] All antivirus have been re-enabled!" -ForegroundColor Green
-Write-Host "It is recommended to restart the system to ensure" -ForegroundColor Yellow
-Write-Host "all services are fully functional." -ForegroundColor Yellow
+Write-Host "It is recommended to restart the system to ensure" -ForegroundColor White
+Write-Host "all services are fully functional." -ForegroundColor White
+Write-Host ""
+Write-Host ("━" * 76) -ForegroundColor White
+Write-Host ""
+Write-Host "  ✨ Antivirus Disabler complete!" -ForegroundColor White
+Write-Host ""
+Write-Host "  👤 Created by: " -NoNewline
+Write-Host "🌟 " -ForegroundColor Cyan -NoNewline
+Write-Host "Tonynoh" -ForegroundColor White
+Write-Host "  📱 My Socials: " -NoNewline
+Write-Host "💬 " -ForegroundColor Blue -NoNewline
+Write-Host "Discord  : " -ForegroundColor Blue -NoNewline
+Write-Host "tonyboy90_" -ForegroundColor Blue
+Write-Host "                 " -NoNewline
+Write-Host "🔗 " -ForegroundColor DarkGray -NoNewline
+Write-Host "GitHub   : " -ForegroundColor DarkGray -NoNewline
+Write-Host "https://github.com/MeowTonynoh" -ForegroundColor DarkGray
+Write-Host "                 " -NoNewline
+Write-Host "🎥 " -ForegroundColor Red -NoNewline
+Write-Host "YouTube  : " -ForegroundColor Red -NoNewline
+Write-Host "tonynoh-07" -ForegroundColor Red
+Write-Host ""
+Write-Host ("━" * 76) -ForegroundColor White
 Write-Host ""
 
 Read-Host "Press Enter to exit"
