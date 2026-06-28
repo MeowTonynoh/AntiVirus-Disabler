@@ -101,15 +101,10 @@ function Disable-AVProcess {
     return $false
 }
 
-Write-Host "====================================================" -ForegroundColor White
-Write-Host "    ANTIVIRUS DISABLER" -ForegroundColor White
-Write-Host "====================================================" -ForegroundColor White
 Write-Host ""
-
-do {
-    $confirm = Read-Host "Do you want to disable antivirus? (Y/N)"
-    $confirm = $confirm.ToUpper()
-} while ($confirm -ne "Y" -and $confirm -ne "N")
+Write-Host "    Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
+$confirm = Read-Host
+$confirm = $confirm.ToUpper()
 
 if ($confirm -eq "N") {
     Write-Host "Operation cancelled." -ForegroundColor Yellow
@@ -216,10 +211,10 @@ foreach ($proc in $processList) {
 }
 
 Write-Host ""
-Write-Host "====================================================" -ForegroundColor White
+Write-Host ("━" * 76) -ForegroundColor White
 Write-Host "[OK] Disable completed!" -ForegroundColor Green
 Write-Host "Antivirus disabled: $disabledCount" -ForegroundColor White
-Write-Host "====================================================" -ForegroundColor White
+Write-Host ("━" * 76) -ForegroundColor White
 Write-Host ""
 
 Write-Host "Re-enable timer started..." -ForegroundColor White
@@ -235,9 +230,9 @@ while ($remainingMinutes -gt 0) {
 }
 
 Write-Host ""
-Write-Host "====================================================" -ForegroundColor White
+Write-Host ("━" * 76) -ForegroundColor White
 Write-Host "TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
-Write-Host "====================================================" -ForegroundColor White
+Write-Host ("━" * 76) -ForegroundColor White
 
 try {
     Set-MpPreference -DisableRealtimeMonitoring $false
