@@ -99,17 +99,14 @@ function Disable-AVProcess {
 
 function Write-Centered {
     param([string]$Message, [ConsoleColor]$Color = "White")
-    $width = $Host.UI.RawUI.WindowSize.Width
-    if ($width -eq 0) { $width = 80 }
+    $width = 80
     $padding = [math]::Max(0, [math]::Floor(($width - $Message.Length) / 2))
     Write-Host (" " * $padding) -NoNewline
     Write-Host $Message -ForegroundColor $Color
 }
 
 Write-Host ""
-$question = "    Do you want to disable antivirus? (Y/N): "
-Write-Host (" " * [math]::Max(0, [math]::Floor((80 - $question.Length) / 2))) -NoNewline
-Write-Host $question -NoNewline -ForegroundColor White
+Write-Centered -Message "Do you want to disable antivirus? (Y/N): " -Color White
 $confirm = Read-Host
 $confirm = $confirm.ToUpper()
 
@@ -123,9 +120,7 @@ if ($confirm -eq "N") {
 
 do {
     Write-Host ""
-    $question2 = "    For how long? (e.g., 30s, 1m, 1h, 2h30m): "
-    Write-Host (" " * [math]::Max(0, [math]::Floor((80 - $question2.Length) / 2))) -NoNewline
-    Write-Host $question2 -NoNewline -ForegroundColor White
+    Write-Centered -Message "For how long? (e.g., 30s, 1m, 1h, 2h30m): " -Color White
     $timeInput = Read-Host
     
     $totalSeconds = 0
@@ -169,7 +164,6 @@ do {
     }
 } while (-not $timeValid)
 
-$totalMinutes = [math]::Round($totalSeconds / 60, 2)
 $endTime = (Get-Date).AddSeconds($totalSeconds)
 
 if ($totalSeconds -ge 3600) {
@@ -314,15 +308,13 @@ while ($remainingSeconds -gt 0) {
     $compass = $compassFrames[$frameIndex % $compassFrames.Length]
     $frameIndex++
     
-    $fullMsg = "  $compass  [*] Time remaining: $timeStr"
-    $padding = [math]::Max(0, [math]::Floor((80 - $fullMsg.Length) / 2))
-    Write-Host (" " * $padding) -NoNewline
-    Write-Host $fullMsg -ForegroundColor White -NoNewline
-    Write-Host (" " * [math]::Max(0, 80 - $fullMsg.Length - $padding)) -NoNewline
+    $fullMsg = "$compass  [*] Time remaining: $timeStr"
+    Write-Centered -Message $fullMsg -Color White
     Start-Sleep -Seconds 1
     $remainingSeconds--
     if ($remainingSeconds -gt 0) {
-        Write-Host "`r" -NoNewline
+        $cursor = [System.Console]::GetCursorPosition()
+        [System.Console]::SetCursorPosition(0, $cursor.Y - 1)
     }
 }
 Write-Host ""
