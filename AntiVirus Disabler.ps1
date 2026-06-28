@@ -150,13 +150,10 @@ if (Disable-WindowsDefender) {
     $disabledServices += "WindowsDefender"
 }
 
-# Lista completa servizi antivirus
+# Lista completa servizi antivirus (rimossa Bitdefender per evitare falsi positivi)
 $avServices = @(
     @{Service="avast"; Display="Avast"},
     @{Service="avastAntivirus"; Display="Avast Antivirus"},
-    @{Service="bdredline"; Display="Bitdefender"},
-    @{Service="bdservicehost"; Display="Bitdefender"},
-    @{Service="BDESVC"; Display="Bitdefender"},
     @{Service="360AntiHacker"; Display="360 Total Security"},
     @{Service="360rp"; Display="360 Total Security"},
     @{Service="McAfeeEngineService"; Display="McAfee"},
@@ -198,8 +195,6 @@ foreach ($av in $avServices) {
 $processList = @(
     @{Process="avastui"; Display="Avast UI"},
     @{Process="AvastSvc"; Display="Avast Service"},
-    @{Process="bdagent"; Display="Bitdefender Agent"},
-    @{Process="vsserv"; Display="Bitdefender"},
     @{Process="360tray"; Display="360 Total Security"},
     @{Process="McAfeeAP"; Display="McAfee"},
     @{Process="mfevtps"; Display="McAfee"},
@@ -247,9 +242,11 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-# === TIMER CON BARRA DI AVANZAMENTO ESTETICA (fissa) ===
+# === TIMER CON BARRA DI AVANZAMENTO ESTETICA ===
 $remaining = $totalSeconds
 $barLength = 30
+$spinnerChars = @("◐", "◓", "◑", "◒")
+$spinnerIdx = 0
 
 while ($remaining -gt 0) {
     $progress = ($totalSeconds - $remaining) / $totalSeconds
@@ -257,6 +254,8 @@ while ($remaining -gt 0) {
     $empty = $barLength - $filled
     $bar = ("█" * $filled) + ("░" * $empty)
     $percent = [math]::Round($progress * 100, 1)
+    $spinner = $spinnerChars[$spinnerIdx]
+    $spinnerIdx = ($spinnerIdx + 1) % 4
     
     $minutes = [math]::Floor($remaining / 60)
     $seconds = $remaining % 60
@@ -271,16 +270,14 @@ while ($remaining -gt 0) {
         $timeStr = "$seconds`s"
     }
     
-    # Pulisce la riga prima di scrivere per evitare bug
-    Write-Host "`r                                                                                " -NoNewline
-    Write-Host "`r  $bar  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
+    # Pulisce la riga e scrive la nuova
+    Write-Host "`r  $spinner  [$bar]  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remaining--
 }
 
-# Timer scaduto - mostra completato
-Write-Host "`r                                                                                " -NoNewline
-Write-Host "`r  $bar  Completed!  (100%)  " -ForegroundColor Green
+# Timer scaduto - mostra completato con check
+Write-Host "`r  ✅  [$bar]  Completed!  (100%)  " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
