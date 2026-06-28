@@ -141,10 +141,13 @@ Write-Host ""
 
 $disabledCount = 0
 $disabledList = @()
+$disabledServices = @()  # Nomi dei servizi disabilitati (per riattivarli)
 
 if (Disable-WindowsDefender) {
     $disabledCount++
     $disabledList += "Windows Defender"
+    # Windows Defender non ha un servizio specifico, lo riattiviamo con i comandi appositi
+    $disabledServices += "WindowsDefender"  # marcatore speciale
 }
 
 $avServices = @(
@@ -187,6 +190,7 @@ foreach ($av in $avServices) {
     if (Disable-ThirdPartyAV -ServiceName $av.Service -DisplayName $av.Display) {
         $disabledCount++
         $disabledList += $av.Display
+        $disabledServices += $av.Service  # Salva il nome del servizio per riattivarlo
     }
 }
 
@@ -216,6 +220,7 @@ foreach ($proc in $processList) {
     if (Disable-AVProcess -ProcessName $proc.Process -DisplayName $proc.Display) {
         $disabledCount++
         $disabledList += $proc.Display
+        # I processi non hanno un servizio da riavviare, quindi non li aggiungiamo
     }
 }
 
@@ -242,7 +247,7 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-# === TIMER CON BARRA DI AVANZAMENTO ESTETICA ===
+# === TIMER CON BARRA DI AVANZAMENTO ROBUSTA ===
 $remaining = $totalSeconds
 $barLength = 30
 
@@ -250,7 +255,8 @@ while ($remaining -gt 0) {
     $progress = ($totalSeconds - $remaining) / $totalSeconds
     $filled = [math]::Floor($progress * $barLength)
     $empty = $barLength - $filled
-    $bar = ("█" * $filled) + ("░" * $empty)
+    # Usa caratteri semplici per massima compatibilità
+    $bar = ("=" * $filled) + ("-" * $empty)
     $percent = [math]::Round($progress * 100, 1)
     
     $minutes = [math]::Floor($remaining / 60)
@@ -266,41 +272,50 @@ while ($remaining -gt 0) {
         $timeStr = "$seconds`s"
     }
     
-    Write-Host "`r  $bar  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
+    # Sovrascrivi la riga (funziona con \r)
+    Write-Host "`r  [$bar]  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remaining--
 }
 
 # Timer scaduto
-Write-Host "`r  $bar  Completed!  (100%)  " -ForegroundColor Green
+Write-Host "`r  [$bar]  Completed!  (100%)  " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
 Write-Host "[!] TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
 
-try {
-    Set-MpPreference -DisableRealtimeMonitoring $false
-    Set-MpPreference -DisableBehaviorMonitoring $false
-    Set-MpPreference -DisableBlockAtFirstSeen $false
-    Set-MpPreference -DisableIOAVProtection $false
-    Set-MpPreference -DisablePrivacyMode $false
-    Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $false
-    Set-MpPreference -DisableArchiveScanning $false
-    Set-MpPreference -DisableIntrusionPreventionSystem $false
-    Set-MpPreference -DisableScriptScanning $false
-    Set-MpPreference -SubmitSamplesConsent 1
-    Write-Host "[OK] Windows Defender re-enabled" -ForegroundColor Green
-} catch {
-    Write-Host "[FAIL] Error re-enabling Windows Defender" -ForegroundColor Red
+# Riattiva solo i servizi che sono stati effettivamente disabilitati
+if ($disabledServices -contains "WindowsDefender") {
+    try {
+        Set-MpPreference -DisableRealtimeMonitoring $false
+        Set-MpPreference -DisableBehaviorMonitoring $false
+        Set-MpPreference -DisableBlockAtFirstSeen $false
+        Set-MpPreference -DisableIOAVProtection $false
+        Set-MpPreference -DisablePrivacyMode $false
+        Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $false
+        Set-MpPreference -DisableArchiveScanning $false
+        Set-MpPreference -DisableIntrusionPreventionSystem $false
+        Set-MpPreference -DisableScriptScanning $false
+        Set-MpPreference -SubmitSamplesConsent 1
+        Write-Host "[OK] Windows Defender re-enabled" -ForegroundColor Green
+    } catch {
+        Write-Host "[FAIL] Error re-enabling Windows Defender" -ForegroundColor Red
+    }
 }
 
-foreach ($av in $avServices) {
+# Riattiva i servizi di terze parti disabilitati
+foreach ($svcName in $disabledServices) {
+    if ($svcName -eq "WindowsDefender") { continue }  # già gestito sopra
     try {
-        $service = Get-Service -Name $av.Service -ErrorAction SilentlyContinue
+        $service = Get-Service -Name $svcName -ErrorAction SilentlyContinue
         if ($service) {
-            Set-Service -Name $av.Service -StartupType Automatic -ErrorAction SilentlyContinue
-            Start-Service -Name $av.Service -ErrorAction SilentlyContinue
-            Write-Host "[OK] $($av.Display) re-enabled" -ForegroundColor Green
+            Set-Service -Name $svcName -StartupType Automatic -ErrorAction SilentlyContinue
+            Start-Service -Name $svcName -ErrorAction SilentlyContinue
+            # Recupera il nome visualizzato dalla lista (opzionale)
+            $display = ($avServices | Where-Object { $_.Service -eq $svcName }).Display
+            if (-not $display) { $display = $svcName }
+            Write-Host "[OK] $display re-enabled" -ForegroundColor Green
         }
     } catch {
     }
