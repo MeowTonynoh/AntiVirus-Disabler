@@ -97,24 +97,6 @@ function Disable-AVProcess {
     return $false
 }
 
-function Show-Compass {
-    param($Remaining)
-    
-    $frames = @(
-        "  ↑  ",
-        "  ↗  ",
-        "  →  ",
-        "  ↘  ",
-        "  ↓  ",
-        "  ↙  ",
-        "  ←  ",
-        "  ↖  "
-    )
-    
-    $idx = [math]::Floor((Get-Date).Millisecond / 125) % 8
-    return $frames[$idx]
-}
-
 Write-Host ""
 Write-Host "Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
 $confirm = Read-Host
@@ -242,7 +224,7 @@ Write-Host "[OK] Disable completed!" -ForegroundColor Green
 if ($disabledCount -gt 0) {
     Write-Host "[*] Disabled $disabledCount antivirus components:" -ForegroundColor White
     foreach ($item in $disabledList | Select-Object -Unique) {
-        Write-Host "    - $item" -ForegroundColor Gray
+        Write-Host "  - $item" -ForegroundColor Gray
     }
 } else {
     Write-Host "[*] No antivirus components were found to disable." -ForegroundColor Yellow
@@ -261,6 +243,9 @@ Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -Foregrou
 Write-Host ""
 
 $remainingSeconds = $totalSeconds
+$compassFrames = @("↑", "↗", "→", "↘", "↓", "↙", "←", "↖")
+$frameIndex = 0
+
 while ($remainingSeconds -gt 0) {
     $minutes = [math]::Floor($remainingSeconds / 60)
     $seconds = $remainingSeconds % 60
@@ -275,11 +260,17 @@ while ($remainingSeconds -gt 0) {
         $timeStr = "$seconds s"
     }
     
-    $compass = Show-Compass -Remaining $remainingSeconds
+    # Ruota la bussola ogni 200ms per farla animare
+    $frameIndex = ($frameIndex + 1) % 8
+    $compass = $compassFrames[$frameIndex]
+    
     Write-Host "`r$compass  [*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
-    Start-Sleep -Seconds 1
-    $remainingSeconds--
+    Start-Sleep -Milliseconds 200
+    $remainingSeconds -= 0.2
 }
+
+# Quando il timer finisce, mostra Completed!
+Write-Host "`r✓  [*] Time remaining: Completed!     " -ForegroundColor Green
 Write-Host ""
 
 Write-Host ""
@@ -316,7 +307,7 @@ foreach ($av in $avServices) {
 Write-Host ""
 Write-Host "✨ Antivirus Disabler Complete! ✨" -ForegroundColor White
 Write-Host ""
-Write-Host "👤 Created by: 🌟 Tonynoh" -ForegroundColor White
+Write-Host "👤 Created by: 🐾 Tonynoh" -ForegroundColor White
 Write-Host ""
 Write-Host "📱 My Socials:" -ForegroundColor White
 Write-Host "  💬 Discord   : tonyboy90_" -ForegroundColor White
