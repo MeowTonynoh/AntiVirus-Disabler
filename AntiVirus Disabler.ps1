@@ -42,11 +42,9 @@ Write-Host "♥ " -ForegroundColor Red -NoNewline
 Write-Host "by " -NoNewline
 Write-Host "MeowTonynoh" -ForegroundColor White
 Write-Host ""
-Write-Host ("━" * 76) -ForegroundColor White
-Write-Host ""
 
 function Disable-WindowsDefender {
-    Write-Host "Disabling Windows Defender..." -ForegroundColor White
+    Write-Host "[*] Disabling Windows Defender..." -ForegroundColor White
     try {
         Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
         Set-MpPreference -DisableBehaviorMonitoring $true -ErrorAction SilentlyContinue
@@ -59,29 +57,28 @@ function Disable-WindowsDefender {
         Set-MpPreference -DisableScriptScanning $true -ErrorAction SilentlyContinue
         Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue
         Write-Host "  [OK] Windows Defender disabled" -ForegroundColor Green
+        return $true
     } catch {
         Write-Host "  [FAIL] Cannot disable Windows Defender" -ForegroundColor Yellow
+        return $false
     }
 }
 
 function Disable-ThirdPartyAV {
     param($ServiceName, $DisplayName)
     
-    Write-Host "Searching $DisplayName..." -ForegroundColor White
     try {
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($service) {
             if ($service.Status -eq 'Running') {
+                Write-Host "[*] Disabling $DisplayName..." -ForegroundColor White
                 Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
                 Set-Service -Name $ServiceName -StartupType Disabled -ErrorAction SilentlyContinue
                 Write-Host "  [OK] $DisplayName disabled" -ForegroundColor Green
                 return $true
-            } else {
-                Write-Host "  [INFO] $DisplayName not running" -ForegroundColor Gray
             }
         }
     } catch {
-        Write-Host "  [INFO] $DisplayName not found" -ForegroundColor Gray
     }
     return $false
 }
@@ -92,6 +89,7 @@ function Disable-AVProcess {
     try {
         $process = Get-Process -Name $ProcessName -ErrorAction SilentlyContinue
         if ($process) {
+            Write-Host "[*] Terminating $DisplayName process..." -ForegroundColor White
             Stop-Process -Name $ProcessName -Force -ErrorAction SilentlyContinue
             Write-Host "  [OK] $DisplayName process terminated" -ForegroundColor Green
             return $true
@@ -113,7 +111,9 @@ if ($confirm -eq "N") {
 }
 
 do {
-    $timeInput = Read-Host "For how long? (e.g., 1h, 30m, 2h, 1.5h)"
+    Write-Host ""
+    Write-Host "    For how long? (e.g., 1h, 30m, 2h, 1.5h): " -NoNewline -ForegroundColor White
+    $timeInput = Read-Host
     
     if ($timeInput -match "(\d+\.?\d*)\s*h") {
         $hours = [double]$matches[1]
@@ -123,26 +123,30 @@ do {
         $totalMinutes = [double]$matches[1]
         $timeValid = $true
     } else {
-        Write-Host "Invalid format. Use: 1h, 30m, 2h, 1.5h" -ForegroundColor Red
+        Write-Host "    Invalid format. Use: 1h, 30m, 2h, 1.5h" -ForegroundColor Red
         $timeValid = $false
     }
 } while (-not $timeValid)
 
-$totalSeconds = $totalMinutes * 60
 $endTime = (Get-Date).AddMinutes($totalMinutes)
 
 Write-Host ""
-Write-Host "Starting antivirus disable..." -ForegroundColor White
-Write-Host "Time selected: $totalMinutes minutes" -ForegroundColor White
-Write-Host "Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor White
+Write-Host "[*] Starting antivirus disable..." -ForegroundColor White
+Write-Host "[*] Time selected: $totalMinutes minutes" -ForegroundColor White
+Write-Host "[*] Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor White
 Write-Host ""
 
 $disabledCount = 0
+$disabledList = @()
 
-Disable-WindowsDefender
-$disabledCount++
+# Disable Windows Defender
+if (Disable-WindowsDefender) {
+    $disabledCount++
+    $disabledList += "Windows Defender"
+}
 
-$avList = @(
+# List of known antivirus services
+$avServices = @(
     @{Service="avast"; Display="Avast"},
     @{Service="avastAntivirus"; Display="Avast Antivirus"},
     @{Service="bdredline"; Display="Bitdefender"},
@@ -178,12 +182,14 @@ $avList = @(
     @{Service="GData"; Display="G Data"}
 )
 
-foreach ($av in $avList) {
+foreach ($av in $avServices) {
     if (Disable-ThirdPartyAV -ServiceName $av.Service -DisplayName $av.Display) {
         $disabledCount++
+        $disabledList += $av.Display
     }
 }
 
+# Terminate known AV processes
 $processList = @(
     @{Process="avastui"; Display="Avast UI"},
     @{Process="AvastSvc"; Display="Avast Service"},
@@ -207,33 +213,51 @@ $processList = @(
 )
 
 foreach ($proc in $processList) {
-    Disable-AVProcess -ProcessName $proc.Process -DisplayName $proc.Display
+    if (Disable-AVProcess -ProcessName $proc.Process -DisplayName $proc.Display) {
+        $disabledCount++
+        $disabledList += $proc.Display
+    }
 }
 
 Write-Host ""
-Write-Host ("━" * 76) -ForegroundColor White
 Write-Host "[OK] Disable completed!" -ForegroundColor Green
-Write-Host "Antivirus disabled: $disabledCount" -ForegroundColor White
-Write-Host ("━" * 76) -ForegroundColor White
+if ($disabledCount -gt 0) {
+    Write-Host "[*] Disabled $disabledCount antivirus components:" -ForegroundColor White
+    foreach ($item in $disabledList | Select-Object -Unique) {
+        Write-Host "    - $item" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "[*] No antivirus components were found to disable." -ForegroundColor Yellow
+}
 Write-Host ""
 
-Write-Host "Re-enable timer started..." -ForegroundColor White
-Write-Host "Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor White
-Write-Host ""
-
-$remainingMinutes = $totalMinutes
-while ($remainingMinutes -gt 0) {
-    $percent = [math]::Round(($remainingMinutes / $totalMinutes) * 100, 0)
-    Write-Progress -Activity "Time remaining until antivirus re-enable" -Status "$remainingMinutes minutes remaining" -PercentComplete (100 - $percent)
-    Start-Sleep -Seconds 60
-    $remainingMinutes--
+if ($disabledCount -eq 0) {
+    Write-Host "Press Enter to exit..."
+    Read-Host
+    exit
 }
 
+Write-Host "[*] Re-enable timer started..." -ForegroundColor White
+Write-Host "[*] Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor White
 Write-Host ""
-Write-Host ("━" * 76) -ForegroundColor White
-Write-Host "TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
-Write-Host ("━" * 76) -ForegroundColor White
 
+# Timer with better formatting
+$remainingSeconds = $totalMinutes * 60
+while ($remainingSeconds -gt 0) {
+    $minutes = [math]::Floor($remainingSeconds / 60)
+    $seconds = $remainingSeconds % 60
+    $timeStr = if ($minutes -gt 0) { "$minutes m $seconds s" } else { "$seconds s" }
+    
+    Write-Host "`r[*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
+    Start-Sleep -Seconds 1
+    $remainingSeconds--
+}
+Write-Host ""
+
+Write-Host ""
+Write-Host "[!] TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
+
+# Re-enable Windows Defender
 try {
     Set-MpPreference -DisableRealtimeMonitoring $false
     Set-MpPreference -DisableBehaviorMonitoring $false
@@ -250,7 +274,8 @@ try {
     Write-Host "[FAIL] Error re-enabling Windows Defender" -ForegroundColor Red
 }
 
-foreach ($av in $avList) {
+# Re-enable third-party services
+foreach ($av in $avServices) {
     try {
         $service = Get-Service -Name $av.Service -ErrorAction SilentlyContinue
         if ($service) {
@@ -264,10 +289,8 @@ foreach ($av in $avList) {
 
 Write-Host ""
 Write-Host "[OK] All antivirus have been re-enabled!" -ForegroundColor Green
-Write-Host "It is recommended to restart the system to ensure" -ForegroundColor White
-Write-Host "all services are fully functional." -ForegroundColor White
-Write-Host ""
-Write-Host ("━" * 76) -ForegroundColor White
+Write-Host "[*] It is recommended to restart the system to ensure" -ForegroundColor White
+Write-Host "[*] all services are fully functional." -ForegroundColor White
 Write-Host ""
 Write-Host "  ✨ Antivirus Disabler complete!" -ForegroundColor White
 Write-Host ""
@@ -286,8 +309,6 @@ Write-Host "                 " -NoNewline
 Write-Host "🎥 " -ForegroundColor Red -NoNewline
 Write-Host "YouTube  : " -ForegroundColor Red -NoNewline
 Write-Host "tonynoh-07" -ForegroundColor Red
-Write-Host ""
-Write-Host ("━" * 76) -ForegroundColor White
 Write-Host ""
 
 Read-Host "Press Enter to exit"
