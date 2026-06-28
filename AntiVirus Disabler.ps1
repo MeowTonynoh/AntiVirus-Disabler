@@ -97,51 +97,45 @@ function Disable-AVProcess {
     return $false
 }
 
-function Write-Centered {
-    param([string]$Message, [ConsoleColor]$Color = "White")
-    $width = $Host.UI.RawUI.WindowSize.Width
-    if ($width -eq 0) { $width = 80 }
-    $padding = [math]::Max(0, [math]::Floor(($width - $Message.Length) / 2))
-    Write-Host (" " * $padding) -NoNewline
-    Write-Host $Message -ForegroundColor $Color
-}
-
 Write-Host ""
-Write-Host "    Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
+Write-Host "Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
 $confirm = Read-Host
 $confirm = $confirm.ToUpper()
 
 if ($confirm -eq "N") {
     Write-Host ""
-    Write-Centered -Message "Operation cancelled." -Color Yellow
-    Write-Centered -Message "Press Enter to exit..." -Color Gray
+    Write-Host "Operation cancelled." -ForegroundColor Yellow
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
     Read-Host
     exit
 }
 
 do {
     Write-Host ""
-    Write-Host "    For how long? (e.g., 1h, 30m, 2h, 1.5h): " -NoNewline -ForegroundColor White
+    Write-Host "For how long? (es. 30s, 1m, 2m, 1h, 1.5h): " -NoNewline -ForegroundColor White
     $timeInput = Read-Host
     
-    if ($timeInput -match "(\d+\.?\d*)\s*h") {
-        $hours = [double]$matches[1]
-        $totalMinutes = $hours * 60
+    if ($timeInput -match "(\d+\.?\d*)\s*s") {
+        $totalSeconds = [double]$matches[1]
         $timeValid = $true
     } elseif ($timeInput -match "(\d+\.?\d*)\s*m") {
-        $totalMinutes = [double]$matches[1]
+        $totalSeconds = [double]$matches[1] * 60
+        $timeValid = $true
+    } elseif ($timeInput -match "(\d+\.?\d*)\s*h") {
+        $totalSeconds = [double]$matches[1] * 3600
         $timeValid = $true
     } else {
-        Write-Host "    Invalid format. Use: 1h, 30m, 2h, 1.5h" -ForegroundColor Red
+        Write-Host "Invalid format. Usa: 30s, 1m, 2h, 1.5h" -ForegroundColor Red
         $timeValid = $false
     }
 } while (-not $timeValid)
 
-$endTime = (Get-Date).AddMinutes($totalMinutes)
+$totalMinutes = $totalSeconds / 60
+$endTime = (Get-Date).AddSeconds($totalSeconds)
 
 Write-Host ""
 Write-Host "[*] Starting antivirus disable..." -ForegroundColor White
-Write-Host "[*] Time selected: $totalMinutes minutes" -ForegroundColor White
+Write-Host "[*] Time selected: $totalSeconds seconds ($($totalMinutes.ToString('F1')) minutes)" -ForegroundColor White
 Write-Host "[*] Expires at: $($endTime.ToString('HH:mm:ss'))" -ForegroundColor White
 Write-Host ""
 
@@ -238,21 +232,30 @@ if ($disabledCount -gt 0) {
 Write-Host ""
 
 if ($disabledCount -eq 0) {
-    Write-Centered -Message "Operation failed." -Color Red
-    Write-Centered -Message "Press Enter to exit..." -Color Gray
+    Write-Host "Operation failed." -ForegroundColor Red
+    Write-Host "Press Enter to exit..." -ForegroundColor Gray
     Read-Host
     exit
 }
 
 Write-Host "[*] Re-enable timer started..." -ForegroundColor White
-Write-Host "[*] Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor White
+Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-$remainingSeconds = $totalMinutes * 60
+$remainingSeconds = $totalSeconds
 while ($remainingSeconds -gt 0) {
     $minutes = [math]::Floor($remainingSeconds / 60)
     $seconds = $remainingSeconds % 60
-    $timeStr = if ($minutes -gt 0) { "$minutes m $seconds s" } else { "$seconds s" }
+    $hours = [math]::Floor($minutes / 60)
+    $minutes = $minutes % 60
+    
+    if ($hours -gt 0) {
+        $timeStr = "$hours h $minutes m $seconds s"
+    } elseif ($minutes -gt 0) {
+        $timeStr = "$minutes m $seconds s"
+    } else {
+        $timeStr = "$seconds s"
+    }
     
     Write-Host "`r[*] Time remaining: $timeStr    " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
