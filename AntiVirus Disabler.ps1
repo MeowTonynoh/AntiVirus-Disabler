@@ -69,14 +69,12 @@ function Disable-ThirdPartyAV {
     
     try {
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-        if ($service) {
-            if ($service.Status -eq 'Running') {
-                Write-Host "[*] Disabling $DisplayName..." -ForegroundColor White
-                Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-                Set-Service -Name $ServiceName -StartupType Disabled -ErrorAction SilentlyContinue
-                Write-Host "  [OK] $DisplayName disabled" -ForegroundColor Green
-                return $true
-            }
+        if ($service -and $service.Status -eq 'Running') {
+            Write-Host "[*] Disabling $DisplayName..." -ForegroundColor White
+            Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $ServiceName -StartupType Disabled -ErrorAction SilentlyContinue
+            Write-Host "  [OK] $DisplayName disabled" -ForegroundColor Green
+            return $true
         }
     } catch {
     }
@@ -99,14 +97,25 @@ function Disable-AVProcess {
     return $false
 }
 
+function Write-Centered {
+    param([string]$Message, [ConsoleColor]$Color = "White")
+    $width = $Host.UI.RawUI.WindowSize.Width
+    if ($width -eq 0) { $width = 80 }
+    $padding = [math]::Max(0, [math]::Floor(($width - $Message.Length) / 2))
+    Write-Host (" " * $padding) -NoNewline
+    Write-Host $Message -ForegroundColor $Color
+}
+
 Write-Host ""
 Write-Host "    Do you want to disable antivirus? (Y/N): " -NoNewline -ForegroundColor White
 $confirm = Read-Host
 $confirm = $confirm.ToUpper()
 
 if ($confirm -eq "N") {
-    Write-Host "Operation cancelled." -ForegroundColor Yellow
-    Read-Host "Press Enter to exit"
+    Write-Host ""
+    Write-Centered -Message "Operation cancelled." -Color Yellow
+    Write-Centered -Message "Press Enter to exit..." -Color Gray
+    Read-Host
     exit
 }
 
@@ -139,13 +148,11 @@ Write-Host ""
 $disabledCount = 0
 $disabledList = @()
 
-# Disable Windows Defender
 if (Disable-WindowsDefender) {
     $disabledCount++
     $disabledList += "Windows Defender"
 }
 
-# List of known antivirus services
 $avServices = @(
     @{Service="avast"; Display="Avast"},
     @{Service="avastAntivirus"; Display="Avast Antivirus"},
@@ -189,7 +196,6 @@ foreach ($av in $avServices) {
     }
 }
 
-# Terminate known AV processes
 $processList = @(
     @{Process="avastui"; Display="Avast UI"},
     @{Process="AvastSvc"; Display="Avast Service"},
@@ -232,7 +238,8 @@ if ($disabledCount -gt 0) {
 Write-Host ""
 
 if ($disabledCount -eq 0) {
-    Write-Host "Press Enter to exit..."
+    Write-Centered -Message "Operation failed." -Color Red
+    Write-Centered -Message "Press Enter to exit..." -Color Gray
     Read-Host
     exit
 }
@@ -241,7 +248,6 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalMinutes minutes" -ForegroundColor White
 Write-Host ""
 
-# Timer with better formatting
 $remainingSeconds = $totalMinutes * 60
 while ($remainingSeconds -gt 0) {
     $minutes = [math]::Floor($remainingSeconds / 60)
@@ -257,7 +263,6 @@ Write-Host ""
 Write-Host ""
 Write-Host "[!] TIME EXPIRED! Re-enabling antivirus..." -ForegroundColor Red
 
-# Re-enable Windows Defender
 try {
     Set-MpPreference -DisableRealtimeMonitoring $false
     Set-MpPreference -DisableBehaviorMonitoring $false
@@ -274,7 +279,6 @@ try {
     Write-Host "[FAIL] Error re-enabling Windows Defender" -ForegroundColor Red
 }
 
-# Re-enable third-party services
 foreach ($av in $avServices) {
     try {
         $service = Get-Service -Name $av.Service -ErrorAction SilentlyContinue
