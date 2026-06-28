@@ -150,10 +150,13 @@ if (Disable-WindowsDefender) {
     $disabledServices += "WindowsDefender"
 }
 
-# Lista completa servizi antivirus (rimossa Bitdefender per evitare falsi positivi)
+# Lista completa servizi antivirus
 $avServices = @(
     @{Service="avast"; Display="Avast"},
     @{Service="avastAntivirus"; Display="Avast Antivirus"},
+    @{Service="bdredline"; Display="Bitdefender"},
+    @{Service="bdservicehost"; Display="Bitdefender"},
+    @{Service="BDESVC"; Display="Bitdefender"},
     @{Service="360AntiHacker"; Display="360 Total Security"},
     @{Service="360rp"; Display="360 Total Security"},
     @{Service="McAfeeEngineService"; Display="McAfee"},
@@ -195,6 +198,8 @@ foreach ($av in $avServices) {
 $processList = @(
     @{Process="avastui"; Display="Avast UI"},
     @{Process="AvastSvc"; Display="Avast Service"},
+    @{Process="bdagent"; Display="Bitdefender Agent"},
+    @{Process="vsserv"; Display="Bitdefender"},
     @{Process="360tray"; Display="360 Total Security"},
     @{Process="McAfeeAP"; Display="McAfee"},
     @{Process="mfevtps"; Display="McAfee"},
@@ -242,11 +247,14 @@ Write-Host "[*] Re-enable timer started..." -ForegroundColor White
 Write-Host "[*] Antivirus will be re-enabled in $totalSeconds seconds" -ForegroundColor White
 Write-Host ""
 
-# === TIMER CON BARRA DI AVANZAMENTO ESTETICA ===
+# === TIMER CON BARRA DI AVANZAMENTO ===
 $remaining = $totalSeconds
 $barLength = 30
-$spinnerChars = @("◐", "◓", "◑", "◒")
+$spinnerChars = @("|", "/", "-", "\")
 $spinnerIdx = 0
+
+# Pulisce la riga iniziale
+Write-Host "`r                                                                                " -NoNewline
 
 while ($remaining -gt 0) {
     $progress = ($totalSeconds - $remaining) / $totalSeconds
@@ -270,13 +278,14 @@ while ($remaining -gt 0) {
         $timeStr = "$seconds`s"
     }
     
-    # Pulisce la riga e scrive la nuova
+    # Scrive la riga completa con spazi per pulire
     Write-Host "`r  $spinner  [$bar]  $timeStr  ($percent%)  " -ForegroundColor White -NoNewline
     Start-Sleep -Seconds 1
     $remaining--
 }
 
-# Timer scaduto - mostra completato con check
+# Timer scaduto - mostra completato con barra piena
+$bar = "█" * $barLength
 Write-Host "`r  ✅  [$bar]  Completed!  (100%)  " -ForegroundColor Green
 Write-Host ""
 
